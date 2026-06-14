@@ -3,6 +3,7 @@ package route;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,17 +19,26 @@ public class RouteServlet extends HttpServlet {
             throws ServletException, IOException {
         processRequest(req, res);
     }
-    
+
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         String lien = req.getRequestURL().toString();
         String[] parts = lien.split("/");
         String texte = parts[parts.length - 1];
-        if (texte.equals("App-Test")) {
-            texte = "";
+
+        // verification si page
+        if (texte.contains(".html") || texte.contains(".jsp")) {
+            RequestDispatcher dispatcher = req.getServletContext().getNamedDispatcher("default");
+            dispatcher.forward(req, res);
         }
-        PrintWriter out = res.getWriter();
-        out.println(texte);
-        
+
+        else {
+            if (texte.equals("App-Test")) {
+                texte = "";
+            }
+            PrintWriter out = res.getWriter();
+            out.println(texte);
+        }
+
     }
 }
