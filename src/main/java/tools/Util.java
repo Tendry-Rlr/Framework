@@ -5,19 +5,33 @@ import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import annotation.controller.UrlMapping;
+
 public class Util {
-    public List<String> classes_annotes(String nomPackage, Class<? extends Annotation> annotation) {
+    public List<String> classes_annotes(String nomPackage, Class<? extends Annotation> annotation,
+            HashMap<String, MappingUrl> listeURL) {
+
         List<String> liste = new ArrayList<>();
 
-        for (Class<?> cls : this.scanner_packages(nomPackage)) {
-            if (cls.isAnnotationPresent(annotation)) {
-                liste.add(cls.getSimpleName());
+        for (Class<?> claz : this.scanner_packages(nomPackage)) {
+            if (claz.isAnnotationPresent(annotation)) {
+                liste.add(claz.getSimpleName());
+
+                // ajout dans MAP
+                for (Method method : claz.getDeclaredMethods()) {
+                    if (method.isAnnotationPresent(UrlMapping.class)) {
+                        UrlMapping annotationURL = method.getAnnotation(UrlMapping.class);
+                        listeURL.put(annotationURL.url(), new MappingUrl(claz, method));
+                    }
+                }
             }
         }
         return liste;
@@ -28,7 +42,7 @@ public class Util {
         return parts;
     }
 
-    protected List<Class<?>> scanner_packages(String nomPackage) {
+    public List<Class<?>> scanner_packages(String nomPackage) {
         List<Class<?>> liste = new ArrayList<>();
 
         List<String> temp = new ArrayList<>();

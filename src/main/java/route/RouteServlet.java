@@ -2,24 +2,35 @@ package route;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import annotation.controller.Controller;
+import annotation.controller.FrontController;
+import annotation.controller.UrlMapping;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import tools.MappingUrl;
 import tools.Util;
 
 public class RouteServlet extends HttpServlet {
+    private String nomProjet;
     private List<String> classes;
+    HashMap<String, MappingUrl> listeURL;
 
     public void init() throws ServletException {
+        listeURL = new HashMap<>();
+
         String scan = this.getInitParameter("scanController");
-        
+        nomProjet = this.getInitParameter("projectName");
+
         Util util = new Util();
-        classes = util.classes_annotes(scan, Controller.class);
+        classes = util.classes_annotes(scan, FrontController.class, listeURL);
+
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -35,28 +46,51 @@ public class RouteServlet extends HttpServlet {
     protected void processRequest(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         String lien = req.getRequestURL().toString();
-        String[] parts = lien.split("/");
-        String texte = parts[parts.length - 1];
 
+        String[] parts = lien.split(nomProjet);
+        String texte = parts[parts.length - 1];
         // afficher les classes annotees
         PrintWriter out = res.getWriter();
+        out.println("Taille du map : " + listeURL.size());
+
         for (int i = 0; i < classes.size(); i++) {
             out.println(classes.get(i));
         }
 
         // verification si page
-        // if (texte.contains(".html") || texte.contains(".jsp")) {
-        //     RequestDispatcher dispatcher = req.getServletContext().getNamedDispatcher("default");
-        //     dispatcher.forward(req, res);
-        // }
+        if (texte.contains(".html") || texte.contains(".jsp")) {
+            RequestDispatcher dispatcher = req.getServletContext().getNamedDispatcher("default");
+            dispatcher.forward(req, res);
+        }
 
-        // else {
-        //     if (texte.equals("App-Test")) {
-        //         texte = "";
-        //     }
-        //     PrintWriter out = res.getWriter();
-        //     out.println(texte);
-        // }
+        else {
+            if (texte.equals("App-Test")) {
+                texte = "";
+            }
 
+            String message = "";
+            for (Map.Entry<String, MappingUrl> entry : listeURL.entrySet()) {
+                if (entry.getKey().equals(texte)) {
+                    UrlMapping annotation = entry.getValue().getMethod().getAnnotation(UrlMapping.class);
+                    message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : " + annotation.url()
+                            + "; METHOD : "
+                            + entry.getValue().getMethod().getName();
+                    out.print(message);
+                    break;
+                }
+            }
+
+            if (message == "") {
+                for (Map.Entry<String, MappingUrl> entry : listeURL.entrySet()) {
+                    UrlMapping annotation = entry.getValue().getMethod().getAnnotation(UrlMapping.class);
+                    message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
+                            + annotation.url()
+                            + "; METHOD : "
+                            + entry.getValue().getMethod().getName();
+                    out.println(message);
+
+                }
+            }
+        }
     }
 }

@@ -6,7 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(value = RetentionPolicy.RUNTIME)
-@Target(value = ElementType.TYPE)
-public @interface Controller {
-
+@Target(value = ElementType.METHOD)
+public @interface UrlMapping {
+    String url();
+    String method() default "GET";
 }
