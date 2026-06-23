@@ -25,6 +25,9 @@ jar -cvf $APP_NAME.jar *
 
 echo ""
 
-echo "JAR creee."
+echo "JAR creee. : $APP_NAME.jar"
 
 echo ""
+
+cp $APP_NAME.jar ../../Framework-Build/App-Test/lib
+
