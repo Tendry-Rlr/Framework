@@ -17,7 +17,7 @@ import annotation.controller.UrlMapping;
 
 public class Util {
     public List<String> classes_annotes(String nomPackage, Class<? extends Annotation> annotation,
-            HashMap<String, MappingUrl> listeURL) {
+            HashMap<UrlMethod, MappingUrl> listeURL) {
 
         List<String> liste = new ArrayList<>();
 
@@ -29,7 +29,7 @@ public class Util {
                 for (Method method : claz.getDeclaredMethods()) {
                     if (method.isAnnotationPresent(UrlMapping.class)) {
                         UrlMapping annotationURL = method.getAnnotation(UrlMapping.class);
-                        listeURL.put(annotationURL.url(), new MappingUrl(claz, method));
+                        listeURL.put(new UrlMethod(annotationURL.url(), annotationURL.methode()), new MappingUrl(claz, method));
                     }
                 }
             }
