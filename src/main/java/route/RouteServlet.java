@@ -2,6 +2,7 @@ package route;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
@@ -15,12 +16,13 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tools.MappingUrl;
+import tools.UrlMethod;
 import tools.Util;
 
 public class RouteServlet extends HttpServlet {
     private String nomProjet;
     private List<String> classes;
-    HashMap<String, MappingUrl> listeURL;
+    HashMap<UrlMethod, MappingUrl> listeURL;
 
     public void init() throws ServletException {
         listeURL = new HashMap<>();
@@ -69,24 +71,31 @@ public class RouteServlet extends HttpServlet {
             }
 
             String message = "";
-            for (Map.Entry<String, MappingUrl> entry : listeURL.entrySet()) {
-                if (entry.getKey().equals(texte)) {
+            for (Map.Entry<UrlMethod, MappingUrl> entry : listeURL.entrySet()) {
+                if (entry.getKey().getUrl().equals(texte)) {
                     UrlMapping annotation = entry.getValue().getMethod().getAnnotation(UrlMapping.class);
                     message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : " + annotation.url()
-                            + "; METHOD : "
-                            + entry.getValue().getMethod().getName();
+                            + "; METHOD : " + entry.getValue().getMethod().getName()
+                            + "; TYPE : " + entry.getKey().getTypeMethode();
                     out.print(message);
+
+                    
+                    // executer la methode
+                    // Object instance = entry.getValue().getClaz().newInstance();
+                    // entry.getValue().getMethod().invoke(instance);
+
                     break;
                 }
             }
 
             if (message == "") {
-                for (Map.Entry<String, MappingUrl> entry : listeURL.entrySet()) {
+                for (Map.Entry<UrlMethod, MappingUrl> entry : listeURL.entrySet()) {
                     UrlMapping annotation = entry.getValue().getMethod().getAnnotation(UrlMapping.class);
                     message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
                             + annotation.url()
                             + "; METHOD : "
-                            + entry.getValue().getMethod().getName();
+                            + entry.getValue().getMethod().getName()
+                            + "; TYPE : " + entry.getKey().getTypeMethode();
                     out.println(message);
 
                 }
