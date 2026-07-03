@@ -11,28 +11,25 @@ import java.util.Map;
 import annotation.controller.FrontController;
 import annotation.controller.UrlMapping;
 import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tools.MappingUrl;
 import tools.UrlMethod;
-import tools.Util;
 
 public class RouteServlet extends HttpServlet {
     private String nomProjet;
     private List<String> classes;
     HashMap<UrlMethod, MappingUrl> listeURL;
 
+    @SuppressWarnings("unchecked")
+    @Override
     public void init() throws ServletException {
-        listeURL = new HashMap<>();
-
-        String scan = this.getInitParameter("scanController");
-        nomProjet = this.getInitParameter("projectName");
-
-        Util util = new Util();
-        classes = util.classes_annotes(scan, FrontController.class, listeURL);
-
+        ServletContext servletContext = getServletContext();
+        this.listeURL = (HashMap<UrlMethod, MappingUrl>) servletContext.getAttribute("urlMap");
+        this.nomProjet = (String) servletContext.getAttribute("projetctName");
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -72,6 +69,7 @@ public class RouteServlet extends HttpServlet {
 
             String message = "";
             for (Map.Entry<UrlMethod, MappingUrl> entry : listeURL.entrySet()) {
+                // afficher la classe associe a l'URL
                 if (entry.getKey().getUrl().equals(texte)) {
                     UrlMapping annotation = entry.getValue().getMethod().getAnnotation(UrlMapping.class);
                     message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : " + annotation.url()
@@ -79,11 +77,17 @@ public class RouteServlet extends HttpServlet {
                             + "; TYPE : " + entry.getKey().getTypeMethode();
                     out.print(message);
 
-                    
                     // executer la methode
-                    // Object instance = entry.getValue().getClaz().newInstance();
-                    // entry.getValue().getMethod().invoke(instance);
-
+                    try {
+                        Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
+                        entry.getValue().getMethod().invoke(instance);
+                    } catch (NoSuchMethodException | InstantiationException e) {
+                        e.printStackTrace(); // Erreur si le constructeur pose problème
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace(); // Erreur de droits d'accès
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace(); // Erreur SI le code de votre méthode de contrôleur plante
+                    }
                     break;
                 }
             }
@@ -97,7 +101,6 @@ public class RouteServlet extends HttpServlet {
                             + entry.getValue().getMethod().getName()
                             + "; TYPE : " + entry.getKey().getTypeMethode();
                     out.println(message);
-
                 }
             }
         }
