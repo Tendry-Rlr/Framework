@@ -21,7 +21,7 @@ import tools.UrlMethod;
 
 public class RouteServlet extends HttpServlet {
     private String nomProjet;
-    private List<String> classes;
+    // private List<String> classes;
     HashMap<UrlMethod, MappingUrl> listeURL;
 
     @SuppressWarnings("unchecked")
@@ -29,7 +29,7 @@ public class RouteServlet extends HttpServlet {
     public void init() throws ServletException {
         ServletContext servletContext = getServletContext();
         this.listeURL = (HashMap<UrlMethod, MappingUrl>) servletContext.getAttribute("urlMap");
-        this.nomProjet = (String) servletContext.getAttribute("projetctName");
+        this.nomProjet = (String) servletContext.getAttribute("projectName");
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -52,9 +52,6 @@ public class RouteServlet extends HttpServlet {
         PrintWriter out = res.getWriter();
         out.println("Taille du map : " + listeURL.size());
 
-        for (int i = 0; i < classes.size(); i++) {
-            out.println(classes.get(i));
-        }
 
         // verification si page
         if (texte.contains(".html") || texte.contains(".jsp")) {
