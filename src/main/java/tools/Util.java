@@ -12,11 +12,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.lang.RuntimeException;
 
 import annotation.controller.UrlMapping;
 
 public class Util {
-    public List<String> classes_annotes(String nomPackage, Class<? extends Annotation> annotation,
+    public void classes_annotes(String nomPackage, Class<? extends Annotation> annotation,
             HashMap<UrlMethod, MappingUrl> listeURL) {
 
         List<String> liste = new ArrayList<>();
@@ -29,12 +30,17 @@ public class Util {
                 for (Method method : claz.getDeclaredMethods()) {
                     if (method.isAnnotationPresent(UrlMapping.class)) {
                         UrlMapping annotationURL = method.getAnnotation(UrlMapping.class);
-                        listeURL.put(new UrlMethod(annotationURL.url(), annotationURL.methode()), new MappingUrl(claz, method));
+
+                        // verification de en cas de doublon url
+                        UrlMethod urlMethod = new UrlMethod(annotationURL.url(), annotationURL.methode());
+                        if (listeURL.containsKey(urlMethod)) {
+                            throw new RuntimeException("Erreur : url duplique pour : " + urlMethod.getUrl());
+                        }
+                        listeURL.put(urlMethod, new MappingUrl(claz, method));
                     }
                 }
             }
         }
-        return liste;
     }
 
     protected static String[] packages(String texte) {
