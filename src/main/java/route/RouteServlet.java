@@ -17,12 +17,14 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tools.MappingUrl;
+import tools.ModelAndView;
 import tools.UrlMethod;
 
 public class RouteServlet extends HttpServlet {
     private String nomProjet;
-    // private List<String> classes;
     HashMap<UrlMethod, MappingUrl> listeURL;
+    private String prefixe;
+    private String suffixe;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -30,6 +32,8 @@ public class RouteServlet extends HttpServlet {
         ServletContext servletContext = getServletContext();
         this.listeURL = (HashMap<UrlMethod, MappingUrl>) servletContext.getAttribute("urlMap");
         this.nomProjet = (String) servletContext.getAttribute("projectName");
+        this.prefixe = (String) servletContext.getAttribute("prefixe");
+        this.suffixe = (String) servletContext.getAttribute("suffixe");
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -52,14 +56,11 @@ public class RouteServlet extends HttpServlet {
         PrintWriter out = res.getWriter();
         out.println("Taille du map : " + listeURL.size());
 
-
         // verification si page
         if (texte.contains(".html") || texte.contains(".jsp")) {
             RequestDispatcher dispatcher = req.getServletContext().getNamedDispatcher("default");
             dispatcher.forward(req, res);
-        }
-
-        else {
+        } else {
             if (texte.equals("App-Test")) {
                 texte = "";
             }
@@ -67,7 +68,8 @@ public class RouteServlet extends HttpServlet {
             String message = "";
             for (Map.Entry<UrlMethod, MappingUrl> entry : listeURL.entrySet()) {
                 // afficher la classe associe a l'URL
-                if (entry.getKey().getUrl().equals(texte)) {
+                if (entry.getKey().getUrl().equals(texte)
+                        && entry.getKey().getTypeMethode().equalsIgnoreCase(req.getMethod())) {
                     UrlMapping annotation = entry.getValue().getMethod().getAnnotation(UrlMapping.class);
                     message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : " + annotation.url()
                             + "; METHOD : " + entry.getValue().getMethod().getName()
@@ -77,7 +79,17 @@ public class RouteServlet extends HttpServlet {
                     // executer la methode
                     try {
                         Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
-                        entry.getValue().getMethod().invoke(instance);
+                        Object retour = entry.getValue().getMethod().invoke(instance);
+
+                        if (retour instanceof ModelAndView modele) {
+                            for (Map.Entry<String, Object> entries : modele.getModele().entrySet()) {
+                                req.setAttribute(entries.getKey(), entries.getValue());
+                            }
+
+                            RequestDispatcher dispatcher = req
+                                    .getRequestDispatcher(this.prefixe + modele.getView() + this.suffixe);
+                            dispatcher.forward(req, res);
+                        }
                     } catch (NoSuchMethodException | InstantiationException e) {
                         e.printStackTrace(); // Erreur si le constructeur pose problème
                     } catch (IllegalAccessException e) {
