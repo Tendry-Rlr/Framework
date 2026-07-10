@@ -18,6 +18,8 @@ public class AppInitializer implements ServletContextListener {
         ServletContext context = sce.getServletContext();
         String scanPackage = context.getInitParameter("scanController");
         String nomProjet = context.getInitParameter("projectName");
+        String suffixe = context.getInitParameter("suffixe");
+        String prefixe = context.getInitParameter("prefixe");;
 
         if (scanPackage == null || scanPackage.isBlank()) {
             throw new IllegalStateException("Parametre d'initialisation de package dans web.xml");
@@ -31,6 +33,8 @@ public class AppInitializer implements ServletContextListener {
             util.classes_annotes(scanPackage, FrontController.class, urlMapping);
             context.setAttribute("urlMap", urlMapping);
             context.setAttribute("projectName", nomProjet);
+            context.setAttribute("suffixe", suffixe);
+            context.setAttribute("prefixe", prefixe);
 
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
