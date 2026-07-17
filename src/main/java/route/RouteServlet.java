@@ -79,7 +79,28 @@ public class RouteServlet extends HttpServlet {
                     // executer la methode
                     try {
                         Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
-                        Object retour = entry.getValue().getMethod().invoke(instance);
+
+                        // 1. On récupère les types des paramètres attendus (les plans 📐)
+                        Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
+
+                        // 2. On crée le tableau d'objets qui contiendra les valeurs réelles (les
+                        // cadeaux 🎁)
+                        Object[] arguments = new Object[parameterTypes.length];
+
+                        // 3. On remplit le tableau en associant chaque type à l'objet réel
+                        // correspondant
+                        for (int i = 0; i < parameterTypes.length; i++) {
+                            if (parameterTypes[i] == HttpServletRequest.class) {
+                                arguments[i] = req; // On injecte la requête HTTP
+                            } else if (parameterTypes[i] == HttpServletResponse.class) {
+                                arguments[i] = res; // On injecte la réponse HTTP si besoin
+                            } else {
+                                arguments[i] = null; // Valeur par défaut pour les autres types
+                            }
+                        }
+
+                        // 4. On exécute la méthode en lui passant l'instance et ses arguments
+                        Object retour = entry.getValue().getMethod().invoke(instance, arguments);
 
                         if (retour instanceof ModelAndView modele) {
                             for (Map.Entry<String, Object> entries : modele.getModele().entrySet()) {
