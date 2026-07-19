@@ -26,5 +26,5 @@ public class MappingUrl {
     public void setMethod(Method method) {
         this.method = method;
     }
-
+    
 }
