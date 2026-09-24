@@ -4,5 +4,6 @@
 /home/tendry/ITU/Web Dynamique/Framework/src/main/java/tools/ModelAndView.java
 /home/tendry/ITU/Web Dynamique/Framework/src/main/java/route/RouteServlet.java
 /home/tendry/ITU/Web Dynamique/Framework/src/main/java/tools/MappingUrl.java
+/home/tendry/ITU/Web Dynamique/Framework/src/main/java/annotation/controller/WebAPI.java
 /home/tendry/ITU/Web Dynamique/Framework/src/main/java/annotation/controller/UrlMapping.java
 /home/tendry/ITU/Web Dynamique/Framework/src/main/java/listener/AppInitializer.java
