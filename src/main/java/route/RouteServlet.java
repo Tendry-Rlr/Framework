@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.Annotation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import annotation.controller.FrontController;
 import annotation.controller.UrlMapping;
+import annotation.controller.WebAPI;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
@@ -20,6 +22,7 @@ import tools.MappingUrl;
 import tools.ModelAndView;
 import tools.UrlMethod;
 import org.springframework.context.ApplicationContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class RouteServlet extends HttpServlet {
     private String nomProjet;
@@ -91,8 +94,20 @@ public class RouteServlet extends HttpServlet {
                             }
                         }
 
-                        // 4. On exécute la méthode en lui passant l'instance et ses arguments
+                        // On exécute la méthode en lui passant l'instance et ses arguments
                         Object retour = entry.getValue().getMethod().invoke(instance, arguments);
+                        PrintWriter out = res.getWriter();
+
+                        if (entry.getValue().getMethod().isAnnotationPresent(WebAPI.class)) {
+                            if (retour instanceof String retourStr) {
+                                out.print(retourStr);
+                            } else {
+                                ObjectMapper mapper = new ObjectMapper();
+                                String jsonResultat = mapper.writeValueAsString(retour); 
+                                out.println(jsonResultat);
+                            }
+                            return;
+                        }
 
                         if (retour instanceof ModelAndView modele) {
                             for (Map.Entry<String, Object> entries : modele.getModele().entrySet()) {
@@ -103,7 +118,6 @@ public class RouteServlet extends HttpServlet {
                                     .getRequestDispatcher(this.prefixe + modele.getView() + this.suffixe);
                             dispatcher.forward(req, res);
                         } else {
-                            PrintWriter out = res.getWriter();
 
                             message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
                                     + annotation.url()
@@ -112,7 +126,7 @@ public class RouteServlet extends HttpServlet {
                             out.print(message);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace(); // Erreur si le constructeur pose problème
+                        e.printStackTrace();
                     }
                     break;
                 }
