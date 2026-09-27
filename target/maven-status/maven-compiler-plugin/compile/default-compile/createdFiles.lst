@@ -1,6 +1,7 @@
 tools/UrlMethod.class
 annotation/controller/FrontController.class
 annotation/controller/UrlMapping.class
+annotation/controller/WebAPI.class
 tools/ModelAndView.class
 route/RouteServlet.class
 tools/Util.class

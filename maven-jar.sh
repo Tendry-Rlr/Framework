@@ -11,7 +11,7 @@ mvn clean package
 
 # On vérifie si Maven a réussi à construire le projet
 if [ $? -ne 0 ]; then
-    echo "❌ Erreur lors de la compilation Maven. Le déploiement est annulé."
+    echo " Erreur lors de la compilation Maven. Le déploiement est annulé."
     exit 1
 fi
 
