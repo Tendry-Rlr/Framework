@@ -79,7 +79,6 @@ public class RouteServlet extends HttpServlet {
                     try {
                         // La méthode Spring :
                         Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
-
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
 
                         Object[] arguments = new Object[parameterTypes.length];
@@ -99,11 +98,14 @@ public class RouteServlet extends HttpServlet {
                         PrintWriter out = res.getWriter();
 
                         if (entry.getValue().getMethod().isAnnotationPresent(WebAPI.class)) {
+                            res.setContentType("application/json");
+
                             if (retour instanceof String retourStr) {
-                                out.print(retourStr);
+                                String json = "{\"success\":\"" + retourStr + "\"}";
+                                out.print(json);
                             } else {
                                 ObjectMapper mapper = new ObjectMapper();
-                                String jsonResultat = mapper.writeValueAsString(retour); 
+                                String jsonResultat = mapper.writeValueAsString(retour);
                                 out.println(jsonResultat);
                             }
                             return;
