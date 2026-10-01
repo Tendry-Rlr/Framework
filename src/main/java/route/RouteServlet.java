@@ -2,7 +2,6 @@ package route;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.text.Annotation;
@@ -13,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import annotation.controller.FrontController;
 import annotation.controller.UrlMapping;
 import annotation.controller.WebAPI;
 import jakarta.servlet.RequestDispatcher;
@@ -174,6 +172,7 @@ public class RouteServlet extends HttpServlet {
                     value = req.getParameter(input);
                     arguments[i] = convertType(value, type);
                     found = true;
+                    break;
                 }
             }
 
