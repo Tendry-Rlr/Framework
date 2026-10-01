@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.text.Annotation;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,22 +81,22 @@ public class RouteServlet extends HttpServlet {
 
                     // executer la methode
                     try {
-                        // La méthode Spring :
                         Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
 
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
-
                         Object[] arguments = new Object[parameterTypes.length];
 
-                        for (int i = 0; i < parameterTypes.length; i++) {
-                            if (parameterTypes[i] == HttpServletRequest.class) {
-                                arguments[i] = req; // On injecte la requête HTTP
-                            } else if (parameterTypes[i] == HttpServletResponse.class) {
-                                arguments[i] = res; // On injecte la réponse HTTP si besoin
-                            } else {
-                                arguments[i] = null; // Valeur par défaut pour les autres types
-                            }
-                        }
+                        // for (int i = 0; i < parameterTypes.length; i++) {
+                        // if (parameterTypes[i] == HttpServletRequest.class) {
+                        // arguments[i] = req;
+                        // } else if (parameterTypes[i] == HttpServletResponse.class) {
+                        // arguments[i] = res;
+                        // } else {
+                        // arguments[i] = null;
+                        // }
+                        // }
+
+                        matchingVariableInput(req, arguments, entry.getValue().getMethod());
 
                         // On exécute la méthode en lui passant l'instance et ses arguments
                         Object retour = entry.getValue().getMethod().invoke(instance, arguments);
@@ -103,7 +107,7 @@ public class RouteServlet extends HttpServlet {
                                 out.print(retourStr);
                             } else {
                                 ObjectMapper mapper = new ObjectMapper();
-                                String jsonResultat = mapper.writeValueAsString(retour); 
+                                String jsonResultat = mapper.writeValueAsString(retour);
                                 out.println(jsonResultat);
                             }
                             return;
@@ -147,4 +151,64 @@ public class RouteServlet extends HttpServlet {
             }
         }
     }
+
+    protected void matchingVariableInput(HttpServletRequest req, Object[] arguments, Method method) {
+
+        Parameter[] parameters = method.getParameters();
+        if (arguments.length == 0) {
+            return;
+        }
+        Enumeration<String> inputsEnums = req.getParameterNames();
+        List<String> inputs = Collections.list(inputsEnums);
+
+        // verifier si le nom des arguments sont egais au nom des inputs
+        for (int i = 0; i < parameters.length; i++) {
+            String paramName = parameters[i].getName();
+            Class<?> type = parameters[i].getType();
+
+            boolean found = false;
+
+            String value = "";
+            for (String input : inputs) {
+                if (input.equalsIgnoreCase(paramName)) {
+                    value = req.getParameter(input);
+                    arguments[i] = convertType(value, type);
+                    found = true;
+                }
+            }
+
+            if (found) {
+                continue;
+            } else {
+                arguments[i] = null;
+            }
+        }
+    }
+
+    private Object convertType(String value, Class<?> targetType) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        // 1. Chaînes de caractères
+        if (targetType == String.class) {
+            return value;
+        }
+        // 2. Nombres entiers
+        if (targetType == int.class || targetType == Integer.class) {
+            return Integer.parseInt(value);
+        }
+        // 3. Nombres décimaux
+        if (targetType == double.class || targetType == Double.class) {
+            return Double.parseDouble(value);
+        }
+        if (targetType == float.class || targetType == Float.class) {
+            return Float.parseFloat(value);
+        }
+        // 4. Booléens
+        if (targetType == boolean.class || targetType == Boolean.class) {
+            return Boolean.parseBoolean(value);
+        }
+        return null;
+    }
+
 }
