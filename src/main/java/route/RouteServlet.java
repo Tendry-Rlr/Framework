@@ -82,7 +82,8 @@ public class RouteServlet extends HttpServlet {
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
                         Object[] arguments = new Object[parameterTypes.length];
 
-                        matchingVariableInput(req, res, arguments, entry.getValue().getMethod());
+                        // matchingVariableInput(req, res, arguments, entry.getValue().getMethod());
+                        matchingVariableInputObject(req, res, arguments, entry.getValue().getMethod());
 
                         System.out.println("Arguments prêts : " + Arrays.toString(arguments));
 
@@ -168,6 +169,60 @@ public class RouteServlet extends HttpServlet {
             } else {
                 // Si une valeur existe, on effectue la conversion de type
                 arguments[i] = Convertion.convertType(value, type);
+            }
+        }
+    }
+
+    protected void matchingVariableInputObject(HttpServletRequest req, HttpServletResponse res,
+            Object[] arguments, Method method) {
+        Parameter[] parameters = method.getParameters();
+
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter parameter = parameters[i];
+            Class<?> type = parameter.getType();
+
+            if (HttpServletRequest.class.isAssignableFrom(type)) {
+                arguments[i] = req;
+                continue;
+            }
+            if (HttpServletResponse.class.isAssignableFrom(type)) {
+                arguments[i] = res;
+                continue;
+            }
+
+            if (!type.isPrimitive() && type != String.class && !Number.class.isAssignableFrom(type)) {
+                Field[] fields = type.getDeclaredFields();
+
+                try {
+                    Object instance = type.getDeclaredConstructor().newInstance();
+
+                    for (int j = 0; j < fields.length; j++) {
+                        String fieldName = fields[j].getName();
+                        String value = req.getParameter(fieldName);
+
+                        String nomSetter = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+                        Class<?> fieldType = fields[j].getType();
+
+                        try {
+                            Method setter = type.getMethod(nomSetter, fieldType);
+                            Object convertedValue = Convertion.convertType(value, fieldType);
+
+                            // Invocation du setter sur l'instance
+                            setter.invoke(instance, convertedValue);
+                        } catch (NoSuchMethodException e) {
+                            System.out.println("Setter non trouvé : " + nomSetter);
+                        }
+                    }
+                    arguments[i] = instance;
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            } else {
+                String value = req.getParameter(parameter.getName());
+                // verifier si la valeur est vide ou non
+                arguments[i] = Convertion.defineObject(value, type);
             }
         }
     }
