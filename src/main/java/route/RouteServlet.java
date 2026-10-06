@@ -2,14 +2,11 @@ package route;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.text.Annotation;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import annotation.controller.UrlMapping;
@@ -20,6 +17,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import tools.Convertion;
 import tools.MappingUrl;
 import tools.ModelAndView;
 import tools.UrlMethod;
@@ -84,25 +82,18 @@ public class RouteServlet extends HttpServlet {
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
                         Object[] arguments = new Object[parameterTypes.length];
 
-                        // for (int i = 0; i < parameterTypes.length; i++) {
-                        // if (parameterTypes[i] == HttpServletRequest.class) {
-                        // arguments[i] = req;
-                        // } else if (parameterTypes[i] == HttpServletResponse.class) {
-                        // arguments[i] = res;
-                        // } else {
-                        // arguments[i] = null;
-                        // }
-                        // }
+                        matchingVariableInput(req, res, arguments, entry.getValue().getMethod());
 
-                        matchingVariableInput(req, arguments, entry.getValue().getMethod());
+                        System.out.println("Arguments prêts : " + Arrays.toString(arguments));
 
-                        // On exécute la méthode en lui passant l'instance et ses arguments
                         Object retour = entry.getValue().getMethod().invoke(instance, arguments);
                         PrintWriter out = res.getWriter();
 
                         if (entry.getValue().getMethod().isAnnotationPresent(WebAPI.class)) {
+                            res.setContentType("application/json");
                             if (retour instanceof String retourStr) {
-                                out.print(retourStr);
+                                String json = "{\"success\":\"" + retourStr + "\"}";
+                                out.print(json);
                             } else {
                                 ObjectMapper mapper = new ObjectMapper();
                                 String jsonResultat = mapper.writeValueAsString(retour);
@@ -150,64 +141,35 @@ public class RouteServlet extends HttpServlet {
         }
     }
 
-    protected void matchingVariableInput(HttpServletRequest req, Object[] arguments, Method method) {
-
+    protected void matchingVariableInput(HttpServletRequest req, HttpServletResponse res,
+            Object[] arguments, Method method) {
         Parameter[] parameters = method.getParameters();
-        if (arguments.length == 0) {
-            return;
-        }
-        Enumeration<String> inputsEnums = req.getParameterNames();
-        List<String> inputs = Collections.list(inputsEnums);
 
-        // verifier si le nom des arguments sont egais au nom des inputs
         for (int i = 0; i < parameters.length; i++) {
-            String paramName = parameters[i].getName();
-            Class<?> type = parameters[i].getType();
+            Parameter parameter = parameters[i];
+            Class<?> type = parameter.getType();
 
-            boolean found = false;
-
-            String value = "";
-            for (String input : inputs) {
-                if (input.equalsIgnoreCase(paramName)) {
-                    value = req.getParameter(input);
-                    arguments[i] = convertType(value, type);
-                    found = true;
-                    break;
-                }
-            }
-
-            if (found) {
+            if (HttpServletRequest.class.isAssignableFrom(type)) {
+                arguments[i] = req;
                 continue;
+            }
+            if (HttpServletResponse.class.isAssignableFrom(type)) {
+                arguments[i] = res;
+                continue;
+            }
+
+            String value = req.getParameter(parameter.getName());
+
+            // verifier si la valeur est vide ou non
+            boolean isEmpty = (value == null || value.trim().isEmpty());
+
+            if (isEmpty) {
+                arguments[i] = type.isPrimitive() ? Convertion.getDefaultValue(type) : null;
             } else {
-                arguments[i] = null;
+                // Si une valeur existe, on effectue la conversion de type
+                arguments[i] = Convertion.convertType(value, type);
             }
         }
-    }
-
-    private Object convertType(String value, Class<?> targetType) {
-        if (value == null || value.trim().isEmpty()) {
-            return null;
-        }
-        // 1. Chaînes de caractères
-        if (targetType == String.class) {
-            return value;
-        }
-        // 2. Nombres entiers
-        if (targetType == int.class || targetType == Integer.class) {
-            return Integer.parseInt(value);
-        }
-        // 3. Nombres décimaux
-        if (targetType == double.class || targetType == Double.class) {
-            return Double.parseDouble(value);
-        }
-        if (targetType == float.class || targetType == Float.class) {
-            return Float.parseFloat(value);
-        }
-        // 4. Booléens
-        if (targetType == boolean.class || targetType == Boolean.class) {
-            return Boolean.parseBoolean(value);
-        }
-        return null;
     }
 
 }
