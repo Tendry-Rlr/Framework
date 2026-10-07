@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.security.KeyStore.Entry;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -102,23 +103,7 @@ public class RouteServlet extends HttpServlet {
                             }
                             return;
                         }
-
-                        if (retour instanceof ModelAndView modele) {
-                            for (Map.Entry<String, Object> entries : modele.getModele().entrySet()) {
-                                req.setAttribute(entries.getKey(), entries.getValue());
-                            }
-
-                            RequestDispatcher dispatcher = req
-                                    .getRequestDispatcher(this.prefixe + modele.getView() + this.suffixe);
-                            dispatcher.forward(req, res);
-                        } else {
-
-                            message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
-                                    + annotation.url()
-                                    + "; METHOD : " + entry.getValue().getMethod().getName()
-                                    + "; TYPE : " + entry.getKey().getTypeMethode();
-                            out.print(message);
-                        }
+                        typeRetour(retour, message, out, annotation, entry, req, res);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -139,6 +124,31 @@ public class RouteServlet extends HttpServlet {
                     out.println(message);
                 }
             }
+        }
+    }
+
+    protected void typeRetour(Object retour, String message, PrintWriter out, UrlMapping annotation,
+            Map.Entry<UrlMethod, MappingUrl> entry, HttpServletRequest req,
+            HttpServletResponse res) {
+        if (retour instanceof ModelAndView modele) {
+            for (Map.Entry<String, Object> entries : modele.getModele().entrySet()) {
+                req.setAttribute(entries.getKey(), entries.getValue());
+            }
+
+            RequestDispatcher dispatcher = req
+                    .getRequestDispatcher(this.prefixe + modele.getView() + this.suffixe);
+            try {
+                dispatcher.forward(req, res);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } 
+        } else {
+
+            message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
+                    + annotation.url()
+                    + "; METHOD : " + entry.getValue().getMethod().getName()
+                    + "; TYPE : " + entry.getKey().getTypeMethode();
+            out.print(message);
         }
     }
 
