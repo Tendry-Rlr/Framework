@@ -2,14 +2,13 @@ package route;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.text.Annotation;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import annotation.controller.FrontController;
 import annotation.controller.UrlMapping;
 import annotation.controller.WebAPI;
 import jakarta.servlet.RequestDispatcher;
@@ -18,6 +17,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import tools.Convertion;
 import tools.MappingUrl;
 import tools.ModelAndView;
 import tools.UrlMethod;
@@ -77,33 +77,26 @@ public class RouteServlet extends HttpServlet {
 
                     // executer la methode
                     try {
-                        // La méthode Spring :
                         Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
 
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
-
                         Object[] arguments = new Object[parameterTypes.length];
 
-                        for (int i = 0; i < parameterTypes.length; i++) {
-                            if (parameterTypes[i] == HttpServletRequest.class) {
-                                arguments[i] = req; // On injecte la requête HTTP
-                            } else if (parameterTypes[i] == HttpServletResponse.class) {
-                                arguments[i] = res; // On injecte la réponse HTTP si besoin
-                            } else {
-                                arguments[i] = null; // Valeur par défaut pour les autres types
-                            }
-                        }
+                        matchingVariableInput(req, res, arguments, entry.getValue().getMethod());
 
-                        // On exécute la méthode en lui passant l'instance et ses arguments
+                        System.out.println("Arguments prêts : " + Arrays.toString(arguments));
+
                         Object retour = entry.getValue().getMethod().invoke(instance, arguments);
                         PrintWriter out = res.getWriter();
 
                         if (entry.getValue().getMethod().isAnnotationPresent(WebAPI.class)) {
+                            res.setContentType("application/json");
                             if (retour instanceof String retourStr) {
-                                out.print(retourStr);
+                                String json = "{\"success\":\"" + retourStr + "\"}";
+                                out.print(json);
                             } else {
                                 ObjectMapper mapper = new ObjectMapper();
-                                String jsonResultat = mapper.writeValueAsString(retour); 
+                                String jsonResultat = mapper.writeValueAsString(retour);
                                 out.println(jsonResultat);
                             }
                             return;
@@ -147,4 +140,36 @@ public class RouteServlet extends HttpServlet {
             }
         }
     }
+
+    protected void matchingVariableInput(HttpServletRequest req, HttpServletResponse res,
+            Object[] arguments, Method method) {
+        Parameter[] parameters = method.getParameters();
+
+        for (int i = 0; i < parameters.length; i++) {
+            Parameter parameter = parameters[i];
+            Class<?> type = parameter.getType();
+
+            if (HttpServletRequest.class.isAssignableFrom(type)) {
+                arguments[i] = req;
+                continue;
+            }
+            if (HttpServletResponse.class.isAssignableFrom(type)) {
+                arguments[i] = res;
+                continue;
+            }
+
+            String value = req.getParameter(parameter.getName());
+
+            // verifier si la valeur est vide ou non
+            boolean isEmpty = (value == null || value.trim().isEmpty());
+
+            if (isEmpty) {
+                arguments[i] = type.isPrimitive() ? Convertion.getDefaultValue(type) : null;
+            } else {
+                // Si une valeur existe, on effectue la conversion de type
+                arguments[i] = Convertion.convertType(value, type);
+            }
+        }
+    }
+
 }
