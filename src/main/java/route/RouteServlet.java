@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -82,7 +83,7 @@ public class RouteServlet extends HttpServlet {
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
                         Object[] arguments = new Object[parameterTypes.length];
 
-                        matchingVariableInput(req, res, arguments, entry.getValue().getMethod());
+                        matchingVariableInputObject(req, res, arguments, entry.getValue().getMethod());
 
                         System.out.println("Arguments prêts : " + Arrays.toString(arguments));
 
@@ -101,23 +102,7 @@ public class RouteServlet extends HttpServlet {
                             }
                             return;
                         }
-
-                        if (retour instanceof ModelAndView modele) {
-                            for (Map.Entry<String, Object> entries : modele.getModele().entrySet()) {
-                                req.setAttribute(entries.getKey(), entries.getValue());
-                            }
-
-                            RequestDispatcher dispatcher = req
-                                    .getRequestDispatcher(this.prefixe + modele.getView() + this.suffixe);
-                            dispatcher.forward(req, res);
-                        } else {
-
-                            message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
-                                    + annotation.url()
-                                    + "; METHOD : " + entry.getValue().getMethod().getName()
-                                    + "; TYPE : " + entry.getKey().getTypeMethode();
-                            out.print(message);
-                        }
+                        typeRetour(retour, message, out, annotation, entry, req, res);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -141,7 +126,33 @@ public class RouteServlet extends HttpServlet {
         }
     }
 
-    protected void matchingVariableInput(HttpServletRequest req, HttpServletResponse res,
+    protected void typeRetour(Object retour, String message, PrintWriter out, UrlMapping annotation,
+            Map.Entry<UrlMethod, MappingUrl> entry, HttpServletRequest req,
+            HttpServletResponse res) {
+        if (retour instanceof ModelAndView modele) {
+            for (Map.Entry<String, Object> entries : modele.getModele().entrySet()) {
+                req.setAttribute(entries.getKey(), entries.getValue());
+            }
+
+            RequestDispatcher dispatcher = req
+                    .getRequestDispatcher(this.prefixe + modele.getView() + this.suffixe);
+            try {
+                dispatcher.forward(req, res);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+
+            message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
+                    + annotation.url()
+                    + "; METHOD : " + entry.getValue().getMethod().getName()
+                    + "; TYPE : " + entry.getKey().getTypeMethode();
+            out.print(message);
+        }
+    }
+
+
+    protected void matchingVariableInputObject(HttpServletRequest req, HttpServletResponse res,
             Object[] arguments, Method method) {
         Parameter[] parameters = method.getParameters();
 
@@ -158,18 +169,14 @@ public class RouteServlet extends HttpServlet {
                 continue;
             }
 
-            String value = req.getParameter(parameter.getName());
-
-            // verifier si la valeur est vide ou non
-            boolean isEmpty = (value == null || value.trim().isEmpty());
-
-            if (isEmpty) {
-                arguments[i] = type.isPrimitive() ? Convertion.getDefaultValue(type) : null;
+            if (type.isArray()) {
+                arguments[i] = Convertion.bindList(type, req, parameter.getName());
+            } else if (!type.isPrimitive() && type != String.class && !Number.class.isAssignableFrom(type)) {
+                arguments[i] = Convertion.bindComplexObject(type, req, parameter.getName());
             } else {
-                // Si une valeur existe, on effectue la conversion de type
+                String value = req.getParameter(parameter.getName());
                 arguments[i] = Convertion.convertType(value, type);
             }
         }
     }
-
 }
