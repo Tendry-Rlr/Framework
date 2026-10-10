@@ -5,8 +5,8 @@ import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.security.KeyStore.Entry;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -141,7 +141,7 @@ public class RouteServlet extends HttpServlet {
                 dispatcher.forward(req, res);
             } catch (Exception e) {
                 e.printStackTrace();
-            } 
+            }
         } else {
 
             message = "Classe : " + entry.getValue().getClaz().getSimpleName() + "; URL : "
@@ -189,6 +189,7 @@ public class RouteServlet extends HttpServlet {
 
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
+            // type de classe de l'argument
             Class<?> type = parameter.getType();
 
             if (HttpServletRequest.class.isAssignableFrom(type)) {
@@ -201,38 +202,11 @@ public class RouteServlet extends HttpServlet {
             }
 
             if (!type.isPrimitive() && type != String.class && !Number.class.isAssignableFrom(type)) {
-                Field[] fields = type.getDeclaredFields();
-
-                try {
-                    Object instance = type.getDeclaredConstructor().newInstance();
-
-                    for (int j = 0; j < fields.length; j++) {
-                        String fieldName = fields[j].getName();
-                        String value = req.getParameter(fieldName);
-
-                        String nomSetter = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-                        Class<?> fieldType = fields[j].getType();
-
-                        try {
-                            Method setter = type.getMethod(nomSetter, fieldType);
-                            Object convertedValue = Convertion.convertType(value, fieldType);
-
-                            // Invocation du setter sur l'instance
-                            setter.invoke(instance, convertedValue);
-                        } catch (NoSuchMethodException e) {
-                            System.out.println("Setter non trouvé : " + nomSetter);
-                        }
-                    }
-                    arguments[i] = instance;
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
+                // Le préfixe initial est vide ou correspond au nom du paramètre si nécessaire
+                arguments[i] = Convertion.bindComplexObject(type, req, "");
             } else {
                 String value = req.getParameter(parameter.getName());
-                // verifier si la valeur est vide ou non
-                arguments[i] = Convertion.defineObject(value, type);
+                arguments[i] = Convertion.convertType(value, type);
             }
         }
     }

@@ -1,5 +1,10 @@
 package tools;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 public class Convertion {
     public static Object convertType(String value, Class<?> targetType) {
         if (value == null || value.trim().isEmpty()) {
@@ -61,6 +66,50 @@ public class Convertion {
             return typeObject.isPrimitive() ? Convertion.getDefaultValue(typeObject) : null;
         }
         return Convertion.convertType(value, typeObject);
+    }
+
+    public static Object bindComplexObject(Class<?> type, HttpServletRequest req, String prefix) {
+        try {
+            Object instance = type.getDeclaredConstructor().newInstance();
+            Field[] fields = type.getDeclaredFields();
+
+            for (Field field : fields) {
+                String fieldName = field.getName();
+                // Construction du nom complet du paramètre (ex: "etablissement.nom")
+                String paramName = (prefix != null && !prefix.isEmpty()) ? prefix + "." + fieldName : fieldName;
+                Class<?> fieldType = field.getType();
+
+                String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+
+                // Si l'attribut est lui-même un objet complexe (ex: Etablissement)
+                if (!fieldType.isPrimitive() && fieldType != String.class
+                        && !Number.class.isAssignableFrom(fieldType)) {
+                    Object nestedInstance = bindComplexObject(fieldType, req, paramName);
+                    try {
+                        Method setter = type.getMethod(setterName, fieldType);
+                        setter.invoke(instance, nestedInstance);
+                    } catch (NoSuchMethodException e) {
+                        // Setter non trouvé
+                    }
+                } else {
+                    // Champ simple (String, int, etc.)
+                    String value = req.getParameter(paramName);
+                    if (value != null) {
+                        try {
+                            Method setter = type.getMethod(setterName, fieldType);
+                            Object convertedValue = Convertion.convertType(value, fieldType);
+                            setter.invoke(instance, convertedValue);
+                        } catch (NoSuchMethodException e) {
+                            // Setter non trouvé
+                        }
+                    }
+                }
+            }
+            return instance;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 }
