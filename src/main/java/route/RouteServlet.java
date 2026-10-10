@@ -189,7 +189,6 @@ public class RouteServlet extends HttpServlet {
 
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
-            // type de classe de l'argument
             Class<?> type = parameter.getType();
 
             if (HttpServletRequest.class.isAssignableFrom(type)) {
@@ -201,14 +200,14 @@ public class RouteServlet extends HttpServlet {
                 continue;
             }
 
-            if (!type.isPrimitive() && type != String.class && !Number.class.isAssignableFrom(type)) {
-                // Le préfixe initial est vide ou correspond au nom du paramètre si nécessaire
-                arguments[i] = Convertion.bindComplexObject(type, req, "");
+            if (type.isArray()) {
+                arguments[i] = Convertion.bindList(type, req, parameter.getName());
+            } else if (!type.isPrimitive() && type != String.class && !Number.class.isAssignableFrom(type)) {
+                arguments[i] = Convertion.bindComplexObject(type, req, parameter.getName());
             } else {
                 String value = req.getParameter(parameter.getName());
                 arguments[i] = Convertion.convertType(value, type);
             }
         }
     }
-
 }
