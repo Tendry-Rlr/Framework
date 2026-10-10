@@ -83,7 +83,6 @@ public class RouteServlet extends HttpServlet {
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
                         Object[] arguments = new Object[parameterTypes.length];
 
-                        // matchingVariableInput(req, res, arguments, entry.getValue().getMethod());
                         matchingVariableInputObject(req, res, arguments, entry.getValue().getMethod());
 
                         System.out.println("Arguments prêts : " + Arrays.toString(arguments));
@@ -152,36 +151,6 @@ public class RouteServlet extends HttpServlet {
         }
     }
 
-    protected void matchingVariableInput(HttpServletRequest req, HttpServletResponse res,
-            Object[] arguments, Method method) {
-        Parameter[] parameters = method.getParameters();
-
-        for (int i = 0; i < parameters.length; i++) {
-            Parameter parameter = parameters[i];
-            Class<?> type = parameter.getType();
-
-            if (HttpServletRequest.class.isAssignableFrom(type)) {
-                arguments[i] = req;
-                continue;
-            }
-            if (HttpServletResponse.class.isAssignableFrom(type)) {
-                arguments[i] = res;
-                continue;
-            }
-
-            String value = req.getParameter(parameter.getName());
-
-            // verifier si la valeur est vide ou non
-            boolean isEmpty = (value == null || value.trim().isEmpty());
-
-            if (isEmpty) {
-                arguments[i] = type.isPrimitive() ? Convertion.getDefaultValue(type) : null;
-            } else {
-                // Si une valeur existe, on effectue la conversion de type
-                arguments[i] = Convertion.convertType(value, type);
-            }
-        }
-    }
 
     protected void matchingVariableInputObject(HttpServletRequest req, HttpServletResponse res,
             Object[] arguments, Method method) {
