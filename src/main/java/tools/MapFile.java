@@ -3,8 +3,12 @@ package tools;
 public class MapFile {
     private String fileName;
     private String extension;
-    Byte[] bytes;
+    byte[] bytes;
 
+    public MapFile() {
+
+    }
+    
     public String getFileName() {
         return fileName;
     }
@@ -21,11 +25,11 @@ public class MapFile {
         this.extension = extension;
     }
 
-    public Byte[] getBytes() {
+    public byte[] getBytes() {
         return bytes;
     }
 
-    public void setBytes(Byte[] bytes) {
+    public void setBytes(byte[] bytes) {
         this.bytes = bytes;
     }
 }

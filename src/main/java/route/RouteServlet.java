@@ -2,11 +2,9 @@ package route;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +13,7 @@ import annotation.controller.WebAPI;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +24,7 @@ import tools.UrlMethod;
 import org.springframework.context.ApplicationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+@MultipartConfig
 public class RouteServlet extends HttpServlet {
     private String nomProjet;
     HashMap<UrlMethod, MappingUrl> listeURL;
@@ -151,7 +151,6 @@ public class RouteServlet extends HttpServlet {
         }
     }
 
-
     protected void matchingVariableInputObject(HttpServletRequest req, HttpServletResponse res,
             Object[] arguments, Method method) {
         Parameter[] parameters = method.getParameters();
@@ -168,7 +167,6 @@ public class RouteServlet extends HttpServlet {
                 arguments[i] = res;
                 continue;
             }
-
             if (type.isArray()) {
                 arguments[i] = Convertion.bindList(type, req, parameter.getName());
             } else if (!type.isPrimitive() && type != String.class && !Number.class.isAssignableFrom(type)) {
