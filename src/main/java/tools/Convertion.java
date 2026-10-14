@@ -71,6 +71,27 @@ public class Convertion {
         return Convertion.convertType(value, typeObject);
     }
 
+    private static void uploadFile(Class<?> type, MapFile mapFile, HttpServletRequest req, String paramName) throws Exception {
+        Part filePart = req.getPart(paramName);
+
+        if (filePart != null && filePart.getSize() > 0) {
+            // 1. Récupérer le nom original du fichier
+            String fileName = filePart.getSubmittedFileName();
+            System.out.println(fileName);
+            String[] parts = fileName.split("\\.");
+
+            byte[] fileBytes;
+            try (InputStream inputStream = filePart.getInputStream()) {
+                fileBytes = inputStream.readAllBytes();
+            }
+
+            mapFile.setFileName(parts[0]);
+            mapFile.setExtension(parts[1]);
+            mapFile.setBytes(fileBytes);
+        }
+
+    }
+
     public static Object bindComplexObject(Class<?> type, HttpServletRequest req, String prefix) {
         try {
             Object instance = type.getDeclaredConstructor().newInstance();
@@ -99,26 +120,11 @@ public class Convertion {
                 if (fieldType.getSimpleName().equalsIgnoreCase("MapFile")) {
 
                     System.out.println("mapfile found");
-                    MapFile mapFile = (MapFile) new MapFile();
-                    Part filePart = req.getPart(paramName);
-
-                    if (filePart != null && filePart.getSize() > 0) {
-                        // 1. Récupérer le nom original du fichier
-                        String fileName = filePart.getSubmittedFileName();
-                        System.out.println(fileName);
-                        String[] parts = fileName.split("\\.");
-
-                        byte[] fileBytes;
-                        try (InputStream inputStream = filePart.getInputStream()) {
-                            fileBytes = inputStream.readAllBytes();
-                        }
-
-                        mapFile.setFileName(parts[0]);
-                        mapFile.setExtension(parts[1]);
-                        mapFile.setBytes(fileBytes);
-                    }
+                    MapFile mapFile = new MapFile();
 
                     try {
+                        uploadFile(type, mapFile, req, paramName);
+
                         Method setter = type.getMethod(setterName, fieldType);
                         setter.invoke(instance, mapFile);
                     } catch (NoSuchMethodException e) {
