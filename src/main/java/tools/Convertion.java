@@ -3,7 +3,6 @@ package tools;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
@@ -71,7 +70,8 @@ public class Convertion {
         return Convertion.convertType(value, typeObject);
     }
 
-    private static void uploadFile(Class<?> type, MapFile mapFile, HttpServletRequest req, String paramName) throws Exception {
+    private static void uploadFile(Class<?> type, MapFile mapFile, HttpServletRequest req, String paramName)
+            throws Exception {
         Part filePart = req.getPart(paramName);
 
         if (filePart != null && filePart.getSize() > 0) {
@@ -89,7 +89,6 @@ public class Convertion {
             mapFile.setExtension(parts[1]);
             mapFile.setBytes(fileBytes);
         }
-
     }
 
     public static Object bindComplexObject(Class<?> type, HttpServletRequest req, String prefix) {
