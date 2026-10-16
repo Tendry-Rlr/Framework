@@ -8,7 +8,7 @@ public class MapFile {
     public MapFile() {
 
     }
-    
+
     public String getFileName() {
         return fileName;
     }
@@ -31,5 +31,9 @@ public class MapFile {
 
     public void setBytes(byte[] bytes) {
         this.bytes = bytes;
+    }
+
+    public String getFileNameExtension() {
+        return this.fileName + "." + this.extension;
     }
 }
