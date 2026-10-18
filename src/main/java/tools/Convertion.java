@@ -1,10 +1,11 @@
 package tools;
 
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Part;
 
 public class Convertion {
     public static Object convertType(String value, Class<?> targetType) {
@@ -69,6 +70,27 @@ public class Convertion {
         return Convertion.convertType(value, typeObject);
     }
 
+    private static void uploadFile(Class<?> type, MapFile mapFile, HttpServletRequest req, String paramName)
+            throws Exception {
+        Part filePart = req.getPart(paramName);
+
+        if (filePart != null && filePart.getSize() > 0) {
+            // 1. Récupérer le nom original du fichier
+            String fileName = filePart.getSubmittedFileName();
+            System.out.println(fileName);
+            String[] parts = fileName.split("\\.");
+
+            byte[] fileBytes;
+            try (InputStream inputStream = filePart.getInputStream()) {
+                fileBytes = inputStream.readAllBytes();
+            }
+
+            mapFile.setFileName(parts[0]);
+            mapFile.setExtension(parts[1]);
+            mapFile.setBytes(fileBytes);
+        }
+    }
+
     public static Object bindComplexObject(Class<?> type, HttpServletRequest req, String prefix) {
         try {
             Object instance = type.getDeclaredConstructor().newInstance();
@@ -77,7 +99,7 @@ public class Convertion {
 
             for (Field field : fields) {
                 String fieldName = field.getName();
-                // Construction du nom complet du paramètre 
+                // Construction du nom complet du paramètre
                 String paramName = (prefix != null && !prefix.isEmpty()) ? prefix + "." + fieldName : fieldName;
                 Class<?> fieldType = field.getType();
 
@@ -91,8 +113,29 @@ public class Convertion {
                     } catch (NoSuchMethodException e) {
                         // Setter non trouvé
                     }
-                } else if (!fieldType.isPrimitive() && fieldType != String.class
-                        && !Number.class.isAssignableFrom(fieldType)) {
+                }
+
+                System.out.println("nom : " + fieldType.getSimpleName());
+                if (fieldType.getSimpleName().equalsIgnoreCase("MapFile")) {
+
+                    System.out.println("mapfile found");
+                    MapFile mapFile = new MapFile();
+
+                    try {
+                        uploadFile(type, mapFile, req, paramName);
+
+                        Method setter = type.getMethod(setterName, fieldType);
+                        setter.invoke(instance, mapFile);
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    }
+
+                    continue;
+                }
+
+                if (!fieldType.isPrimitive() && fieldType != String.class
+                        && !Number.class.isAssignableFrom(fieldType) && !fieldType.isArray()) {
+
                     // Objet complexe imbriqué
                     Object nestedInstance = bindComplexObject(fieldType, req, paramName);
                     try {
@@ -100,6 +143,7 @@ public class Convertion {
                         setter.invoke(instance, nestedInstance);
                     } catch (NoSuchMethodException e) {
                         // Setter non trouvé
+                        e.printStackTrace();
                     }
                 } else {
                     String value = req.getParameter(paramName);
@@ -110,6 +154,7 @@ public class Convertion {
                             setter.invoke(instance, convertedValue);
                         } catch (NoSuchMethodException e) {
                             // Setter non trouvé
+                            e.printStackTrace();
                         }
                     }
                 }

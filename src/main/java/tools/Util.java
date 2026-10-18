@@ -26,18 +26,18 @@ public class Util {
 
         for (Class<?> claz : this.scanner_packages(nomPackage)) {
             if (claz.isAnnotationPresent(annotation)) {
-                // définition du Bean pour Spring 
+                // définition du Bean pour Spring
                 GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
                 beanDefinition.setBeanClass(claz);
 
-                //Injection automatique par type pour activer le @Autowired interne
+                // Injection automatique par type pour activer le @Autowired interne
                 beanDefinition.setAutowireMode(GenericBeanDefinition.AUTOWIRE_BY_TYPE);
 
                 // On génère un nom unique pour le bean (ex: "helloController")
                 String beanName = claz.getSimpleName().substring(0, 1).toLowerCase()
                         + claz.getSimpleName().substring(1);
 
-                // enregistrement dans Spring 
+                // enregistrement dans Spring
                 registry.registerBeanDefinition(beanName, beanDefinition);
                 liste.add(claz.getSimpleName());
 

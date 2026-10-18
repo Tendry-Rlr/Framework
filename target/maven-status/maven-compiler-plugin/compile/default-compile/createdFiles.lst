@@ -4,6 +4,7 @@ annotation/controller/UrlMapping.class
 annotation/controller/WebAPI.class
 tools/ModelAndView.class
 route/RouteServlet.class
+tools/MapFile.class
 tools/Util.class
 tools/Convertion.class
 tools/MappingUrl.class
