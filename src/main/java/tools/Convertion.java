@@ -3,9 +3,14 @@ package tools;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.http.HttpRequest;
+
+import org.springframework.context.ApplicationContext;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
+import route.MySession;
 
 public class Convertion {
     public static Object convertType(String value, Class<?> targetType) {
@@ -68,6 +73,15 @@ public class Convertion {
             return typeObject.isPrimitive() ? Convertion.getDefaultValue(typeObject) : null;
         }
         return Convertion.convertType(value, typeObject);
+    }
+
+    public static Object gererSession(HttpServletRequest req, ApplicationContext context) {
+        HttpSession session = req.getSession();
+
+        MySession mysession = new MySession();
+        mysession.chargerSession(session);
+        
+        return mysession;
     }
 
     private static void uploadFile(Class<?> type, MapFile mapFile, HttpServletRequest req, String paramName)

@@ -167,6 +167,10 @@ public class RouteServlet extends HttpServlet {
                 arguments[i] = res;
                 continue;
             }
+            if (type.getSimpleName().equalsIgnoreCase("MySession")) {
+                System.out.println("session found");
+                arguments[i] = Convertion.gererSession(req, this.appContext);
+            }
             if (type.isArray()) {
                 arguments[i] = Convertion.bindList(type, req, parameter.getName());
             } else if (!type.isPrimitive() && type != String.class && !Number.class.isAssignableFrom(type)) {
