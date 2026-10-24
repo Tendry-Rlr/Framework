@@ -17,6 +17,7 @@ import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import session.MySession;
 import tools.Convertion;
 import tools.MappingUrl;
 import tools.ModelAndView;
@@ -31,6 +32,7 @@ public class RouteServlet extends HttpServlet {
     private String prefixe;
     private String suffixe;
     private ApplicationContext appContext;
+    private Map<String, MySession> sessions;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -41,6 +43,7 @@ public class RouteServlet extends HttpServlet {
         this.prefixe = (String) servletContext.getAttribute("prefixe");
         this.suffixe = (String) servletContext.getAttribute("suffixe");
         this.appContext = (ApplicationContext) servletContext.getAttribute("springContext");
+        this.sessions = (Map<String, MySession>) servletContext.getAttribute("sessions");
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -169,7 +172,8 @@ public class RouteServlet extends HttpServlet {
             }
             if (type.getSimpleName().equalsIgnoreCase("MySession")) {
                 System.out.println("session found");
-                arguments[i] = Convertion.gererSession(req, this.appContext);
+                arguments[i] = Convertion.gererSession(req, this.sessions);
+                continue; 
             }
             if (type.isArray()) {
                 arguments[i] = Convertion.bindList(type, req, parameter.getName());
