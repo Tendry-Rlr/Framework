@@ -1,7 +1,9 @@
 package listener;
 
 import java.util.HashMap;
+import java.util.Map;
 
+import session.MySession;
 import annotation.controller.FrontController;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
@@ -24,6 +26,10 @@ public class AppInitializer implements ServletContextListener {
         String suffixe = context.getInitParameter("suffixe");
         String prefixe = context.getInitParameter("prefixe");
 
+        // initialisation de session
+        Map<String, MySession> sessions = new HashMap<String, MySession>();
+        context.setAttribute("sessions", sessions);
+
         if (scanPackage == null || scanPackage.isBlank()) {
             throw new IllegalStateException("Parametre d'initialisation de package dans web.xml");
         }
@@ -44,7 +50,6 @@ public class AppInitializer implements ServletContextListener {
             context.setAttribute("prefixe", prefixe);
 
             context.setAttribute("springContext", contexte);
-
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
