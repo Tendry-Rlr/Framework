@@ -4,13 +4,16 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.http.HttpRequest;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.context.ApplicationContext;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
-import route.MySession;
+import session.MySession;
 
 public class Convertion {
     public static Object convertType(String value, Class<?> targetType) {
@@ -75,13 +78,23 @@ public class Convertion {
         return Convertion.convertType(value, typeObject);
     }
 
-    public static Object gererSession(HttpServletRequest req, ApplicationContext context) {
-        HttpSession session = req.getSession();
+    public static MySession gererSession(HttpServletRequest req, Map<String, MySession> sessions) {
+        HttpSession sessionHttp = req.getSession();
+        String sessionId = sessionHttp.getId();
+        System.out.println("Session id : " + sessionId);
 
-        MySession mysession = new MySession();
-        mysession.chargerSession(session);
-        
-        return mysession;
+        MySession mySession = sessions.get(sessionId);
+        if (mySession != null) {
+            System.out.println("la session est deja presente");
+        }
+        if (mySession == null) {
+            System.out.println("Initialisation de la session");
+            mySession = new MySession();
+            mySession.chargerSession(sessionHttp);
+            sessions.put(sessionId, mySession);
+        }
+
+        return mySession;
     }
 
     private static void uploadFile(Class<?> type, MapFile mapFile, HttpServletRequest req, String paramName)
