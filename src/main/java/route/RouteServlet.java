@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import annotation.controller.Authentification;
+import annotation.controller.Role;
 import annotation.controller.UrlMapping;
 import annotation.controller.WebAPI;
 import jakarta.servlet.RequestDispatcher;
@@ -36,6 +37,7 @@ public class RouteServlet extends HttpServlet {
     private ApplicationContext appContext;
     private Map<String, MySession> sessions;
     private String authentification;
+    private String role;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -48,7 +50,7 @@ public class RouteServlet extends HttpServlet {
         this.appContext = (ApplicationContext) servletContext.getAttribute("springContext");
         this.sessions = (Map<String, MySession>) servletContext.getAttribute("sessions");
         this.authentification = this.getInitParameter("authentification-name");
-        System.out.println("Valeur de authentification : " + this.authentification);
+        this.role = this.getInitParameter("role-name");
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -84,7 +86,6 @@ public class RouteServlet extends HttpServlet {
                         && entry.getKey().getTypeMethode().equalsIgnoreCase(req.getMethod())) {
                     UrlMapping annotation = entry.getValue().getMethod().getAnnotation(UrlMapping.class);
 
-                    // executer la methode
                     try {
                         if (entry.getValue().getMethod().isAnnotationPresent(Authentification.class)) {
                             try {
@@ -95,6 +96,17 @@ public class RouteServlet extends HttpServlet {
                             }
                         }
 
+                        if (entry.getValue().getMethod().isAnnotationPresent(Role.class)) {
+                            Role roleAnnotation = entry.getValue().getMethod().getAnnotation(Role.class);
+                            try {
+                                this.verifyRole(req, res, roleAnnotation.roles());
+                            } catch (RuntimeException e) {
+                                res.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+                                return;
+                            }
+                        }
+
+                        // executer la methode
                         Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
 
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
@@ -159,6 +171,42 @@ public class RouteServlet extends HttpServlet {
         if (mySession.getValue(this.authentification) == null) {
             System.out.println("Pas encore authentifiee");
             throw new RuntimeException("Pas encore authentifiee");
+        }
+    }
+
+    public void verifyRole(HttpServletRequest req, HttpServletResponse res, String[] roles) {
+        try {
+            this.verifyAuthentification(req);
+
+            HttpSession sessionHttp = req.getSession();
+            String sessionId = sessionHttp.getId();
+
+            MySession mySession = sessions.get(sessionId);
+
+            if (mySession == null) {
+                System.out.println("Initialisation de la session");
+                mySession = new MySession();
+                mySession.chargerSession(sessionHttp);
+                sessions.put(sessionId, mySession);
+            }
+
+            if (mySession.getValue(this.role) == null) {
+                throw new RuntimeException("Pas de role dans session");
+            } else {
+                boolean present = false;
+                String roleValue = (String) mySession.getValue(this.role);
+                for (String r : roles) {
+                    if (r.equals(roleValue)) {
+                        present = true;
+                        break;
+                    }
+                }
+                if (!present) {
+                    throw new RuntimeException("Role non accordee");
+                }
+            }
+        } catch (RuntimeException e) {
+            throw e;
         }
     }
 
