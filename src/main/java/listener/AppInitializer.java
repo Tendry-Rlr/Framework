@@ -30,6 +30,9 @@ public class AppInitializer implements ServletContextListener {
         Map<String, MySession> sessions = new HashMap<String, MySession>();
         context.setAttribute("sessions", sessions);
 
+        Map<String, Object> instanceController = new HashMap<>();
+        context.setAttribute("instanceControllers", instanceController);
+
         if (scanPackage == null || scanPackage.isBlank()) {
             throw new IllegalStateException("Parametre d'initialisation de package dans web.xml");
         }
