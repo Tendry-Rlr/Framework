@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import annotation.controller.Authentification;
 import annotation.controller.UrlMapping;
 import annotation.controller.WebAPI;
 import jakarta.servlet.RequestDispatcher;
@@ -17,6 +18,7 @@ import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import session.MySession;
 import tools.Convertion;
 import tools.MappingUrl;
@@ -33,6 +35,7 @@ public class RouteServlet extends HttpServlet {
     private String suffixe;
     private ApplicationContext appContext;
     private Map<String, MySession> sessions;
+    private String authentification;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -44,6 +47,8 @@ public class RouteServlet extends HttpServlet {
         this.suffixe = (String) servletContext.getAttribute("suffixe");
         this.appContext = (ApplicationContext) servletContext.getAttribute("springContext");
         this.sessions = (Map<String, MySession>) servletContext.getAttribute("sessions");
+        this.authentification = this.getInitParameter("authentification-name");
+        System.out.println("Valeur de authentification : " + this.authentification);
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -81,6 +86,15 @@ public class RouteServlet extends HttpServlet {
 
                     // executer la methode
                     try {
+                        if (entry.getValue().getMethod().isAnnotationPresent(Authentification.class)) {
+                            try {
+                                this.verifyAuthentification(req);
+                            } catch (RuntimeException e) {
+                                res.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+                                return;
+                            }
+                        }
+
                         Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
 
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
@@ -92,7 +106,6 @@ public class RouteServlet extends HttpServlet {
 
                         Object retour = entry.getValue().getMethod().invoke(instance, arguments);
                         PrintWriter out = res.getWriter();
-
                         if (entry.getValue().getMethod().isAnnotationPresent(WebAPI.class)) {
                             res.setContentType("application/json");
                             if (retour instanceof String retourStr) {
@@ -126,6 +139,26 @@ public class RouteServlet extends HttpServlet {
                     out.println(message);
                 }
             }
+        }
+    }
+
+    public void verifyAuthentification(HttpServletRequest req) {
+        HttpSession sessionHttp = req.getSession();
+        String sessionId = sessionHttp.getId();
+        System.out.println("Session id : " + sessionId);
+
+        MySession mySession = sessions.get(sessionId);
+
+        if (mySession == null) {
+            System.out.println("Initialisation de la session");
+            mySession = new MySession();
+            mySession.chargerSession(sessionHttp);
+            sessions.put(sessionId, mySession);
+        }
+
+        if (mySession.getValue(this.authentification) == null) {
+            System.out.println("Pas encore authentifiee");
+            throw new RuntimeException("Pas encore authentifiee");
         }
     }
 
@@ -173,7 +206,7 @@ public class RouteServlet extends HttpServlet {
             if (type.getSimpleName().equalsIgnoreCase("MySession")) {
                 System.out.println("session found");
                 arguments[i] = Convertion.gererSession(req, this.sessions);
-                continue; 
+                continue;
             }
             if (type.isArray()) {
                 arguments[i] = Convertion.bindList(type, req, parameter.getName());
