@@ -38,6 +38,7 @@ public class RouteServlet extends HttpServlet {
     private Map<String, MySession> sessions;
     private String authentification;
     private String role;
+    private Map<String, Object> instanceController;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -51,6 +52,7 @@ public class RouteServlet extends HttpServlet {
         this.sessions = (Map<String, MySession>) servletContext.getAttribute("sessions");
         this.authentification = this.getInitParameter("authentification-name");
         this.role = this.getInitParameter("role-name");
+        this.instanceController = (Map<String, Object>) servletContext.getAttribute("instanceControllers");
     }
 
     protected void doPost(HttpServletRequest req, HttpServletResponse res)
@@ -106,8 +108,21 @@ public class RouteServlet extends HttpServlet {
                             }
                         }
 
+                        // implementation de l'instance pour le signleton
+                        Object instance = null;
+                        String nomController = entry.getValue().getClaz().getSimpleName();
+
+                        if (instanceController.get(nomController) == null) {
+                            instanceController.put(nomController,
+                                    entry.getValue().getClaz().getDeclaredConstructor().newInstance());
+                            System.out.println("Nouvelle instance de :" + nomController);
+                        }
+                        else {
+                            System.out.println("Intance deja presente pour : " + nomController);
+                        }
+                        instance = instanceController.get(nomController);
+
                         // executer la methode
-                        Object instance = entry.getValue().getClaz().getDeclaredConstructor().newInstance();
 
                         Class<?>[] parameterTypes = entry.getValue().getMethod().getParameterTypes();
                         Object[] arguments = new Object[parameterTypes.length];
